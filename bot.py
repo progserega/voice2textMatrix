@@ -54,10 +54,8 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
   global data
   log.debug("=start function=")
   answer=None
-  session_data_room=None:w
-
-  session_data_vk=None
-  session_data_user=None
+  room_settings=None
+  user_settings=None
 
   if reply_to_id!=None and format_type=="org.matrix.custom.html" and formated_message!=None:
     # разбираем, чтобы получить исходное сообщение и ответ
@@ -68,10 +66,10 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
     log.debug("cmd=%s"%source_cmd)
     cmd="> %s\n%s"%(source_message,source_cmd)
 
-  if re.search('^@%s:.*'%conf.username, user.lower()) is not None:
-    # отправленное нами же сообщение - пропускаем:
-    log.debug("skip our message")
-    return True
+#  if re.search('^@%s:.*'%conf.username, user.lower()) is not None:
+#    # отправленное нами же сообщение - пропускаем:
+#    log.debug("skip our message")
+#    return True
 
   if user not in data["users"]:
     data["users"][user]={}
@@ -106,7 +104,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
   if re.search('^%s '%conf.bot_command, cmd.lower()) is not None:
     # команда нам:
     # берём команду:
-    command=re.sub('^%s '%conf.bot_command, '', cmd.lower).strip()
+    command=re.sub('^%s '%conf.bot_command, '', cmd.lower()).strip()
 
     # help
     if re.search('^help$', command) is not None:
@@ -391,7 +389,7 @@ def on_message(event):
             formatted_body=event['content']['formatted_body']
             format_type=event['content']['format']
 
-      elif event['content']['msgtype'] == "m.file":
+      elif event['content']['msgtype'] == "m.audio":
         try:
           file_url=event['content']['url']
           if "fileinfo" in event['content']['info']:
@@ -521,7 +519,7 @@ def main():
   while True:
     print("step %d"%x)
     x+=1
-    time.sleep(1)
+    time.sleep(30)
 
   log.info("exit main loop")
 
