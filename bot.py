@@ -123,7 +123,12 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
               log.error("send_notice(%s)"%room)
             return False
         # Отправка изображения из матрицы:
-        if send_notice(room,"%s говорит: %s"%(user_display_name,result_string))==False:
+        if len(result_string)!=0:
+          message="%s говорит: %s"%(user_display_name,result_string)
+        else:
+          message="%s помолчал в микрофон :-("%user_display_name
+
+        if send_notice(room,message)==False:
           log.error("send_notice(%s)"%room)
           return False
   # Комната управления:
@@ -391,7 +396,7 @@ def on_message(event):
       # leave:
       elif event['content']['membership'] == "leave":
           log.info("{0} leave".format(event['sender']))
-          if len(client.rooms[room_id]._members)==1:
+          if len(client.rooms[event['room_id']]._members)==1:
             # в этой комнате только мы остались:
             # close room:
             with lock:
@@ -421,6 +426,8 @@ def on_message(event):
           file_url=event['content']['url']
           if "fileinfo" in event['content']['info']:
             file_type=event['content']['info']['fileinfo']['mimetype']
+          if "audioinfo" in event['content']['info']:
+            file_type=event['content']['info']['audioinfo']['mimetype']
           else:
             file_type=event['content']['info']['mimetype']
         except:
