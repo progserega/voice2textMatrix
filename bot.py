@@ -97,15 +97,23 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
         log.info("TODO в текст")
         result_string=None
 
-        data=get_file(file_url)
-        if data==None:
+        user_display_name=get_user_display_name(user)
+        if user_display_name==None:
+          result_string="error get user display name from matrix"
+          log.error(result_string)
+          if send_notice(room,result_string)==False:
+            log.error("send_notice(%s)"%room)
+          return False
+
+        file_data=get_file(file_url)
+        if file_data==None:
           result_string="error get voice data from matrix"
           log.error(result_string)
           if send_notice(room,result_string)==False:
             log.error("send_notice(%s)"%room)
           return False
         else:
-          result_data=yandex.voice2text(log,data)
+          result_data=yandex.voice2text(log,file_data)
           if result_data!=None:
             result_string=result_data
           else:
@@ -115,7 +123,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
               log.error("send_notice(%s)"%room)
             return False
         # Отправка изображения из матрицы:
-        if send_notice(room,result_string)==False:
+        if send_notice(room,"%s говорит: %s"%(user_display_name,result_string))==False:
           log.error("send_notice(%s)"%room)
           return False
   # Комната управления:
@@ -715,6 +723,18 @@ def upload_file(content,content_type,filename=None):
       log.error("Couldn't upload file (unknown error)")
       return None
   return ret
+
+def get_user_display_name(user):
+  global client
+  global log
+  log.debug("=start function=")
+  try:
+    user=client.get_user(user)
+    name = user.get_display_name()
+  except:
+    log.error("get_display_name()")
+    return None
+  return name
 
 def get_name_of_matrix_room(room_id):
   global client
