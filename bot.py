@@ -27,6 +27,7 @@ import traceback
 import vk
 import ujson
 import wget
+import yandex_api as yandex
 from PIL import Image
 
 from matrix_client.client import MatrixClient
@@ -66,10 +67,10 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
     log.debug("cmd=%s"%source_cmd)
     cmd="> %s\n%s"%(source_message,source_cmd)
 
-#  if re.search('^@%s:.*'%conf.username, user.lower()) is not None:
-#    # отправленное нами же сообщение - пропускаем:
-#    log.debug("skip our message")
-#    return True
+  if re.search('^@%s:.*'%conf.username, user.lower()) is not None:
+    # отправленное нами же сообщение - пропускаем:
+    log.debug("skip our message")
+    return True
 
   if user not in data["users"]:
     data["users"][user]={}
@@ -94,7 +95,25 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
         # пришло голосовое сообщение - переводим его в текст:
         # TODO
         log.info("TODO в текст")
-        result_string="TODO"
+        result_string=None
+
+        data=get_file(file_url)
+        if data==None:
+          result_string="error get voice data from matrix"
+          log.error(result_string)
+          if send_notice(room,result_string)==False:
+            log.error("send_notice(%s)"%room)
+          return False
+        else:
+          result_data=yandex.voice2text(log,data)
+          if result_data!=None:
+            result_string=result_data
+          else:
+            result_string="error call api voce2text()"
+            log.error(result_string)
+            if send_notice(room,result_string)==False:
+              log.error("send_notice(%s)"%room)
+            return False
         # Отправка изображения из матрицы:
         if send_notice(room,result_string)==False:
           log.error("send_notice(%s)"%room)

@@ -14,3 +14,7 @@ data_file="data.json"
 log_path="voice2text.log"
 
 debug=True
+
+# yandex speach cloud API settings:
+FOLDER_ID = "XXXXXX" # Идентификатор каталога
+IAM_TOKEN = "XXXXXXX"
