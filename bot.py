@@ -470,31 +470,49 @@ def on_invite(room, event):
   global data
   log.debug("=start function=")
 
-  if conf.debug:
-    print("invite:")
-    print("room_data:")
-    print(room)
-    print("event_data:")
-    print(event)
-    print(json.dumps(event, indent=4, sort_keys=True,ensure_ascii=False))
+  log.debug(json.dumps(event, indent=4, sort_keys=True,ensure_ascii=False))
 
   # Просматриваем сообщения:
   for event_item in event['events']:
     if event_item['type'] == "m.room.join_rules":
       if event_item['content']['join_rule'] == "invite":
-        # Приглашение вступить в комнату:
-        room = client.join_room(room)
-        room.send_text("Спасибо за приглашение! Недеюсь быть Вам полезным. :-)")
-        room.send_text("Для справки по доступным командам - неберите: '!vs help'")
         user=event_item["sender"]
-        log.info("New user: '%s'"%user)
-        # Прописываем системную группу для пользователя (группа, в которую будут сыпаться системные сообщения от бота и где он будет слушать команды):
-        with lock:
-          if "users" not in data:
-            data["users"]={}
-          if user not in data["users"]:
-            data["users"][user]={}
-          save_data(data)
+        # проверка на разрешения:
+        allow=False
+        if len(conf.allow_domains)>0:
+          for allow_domain in conf.allow_domains:
+            if re.search('.*:%s$'%allow_domain.lower(), user.lower()) is not None:
+              allow=True
+              log.info("user: %s from allow domain: %s - allow invite"%(user, allow_domain))
+              break
+        if len(conf.allow_users)>0:
+          for allow_user in conf.allow_users:
+            if allow_user.lower() == user.lower():
+              allow=True
+              log.info("user: %s from allow users - allow invite"%user)
+              break
+        if len(conf.allow_domains)==0 and  len(conf.allow_users)==0:
+          allow=True
+
+        if allow == True:
+          # Приглашение вступить в комнату:
+          log.debug("try join to room: %s"%room)
+          room_class = client.join_room(room)
+          log.debug("success join to room: %s"%room)
+          room_class.send_text("Спасибо за приглашение! Недеюсь быть Вам полезным. :-)")
+          room_class.send_text("Для справки по доступным командам - неберите: '!vs help'")
+          log.debug("success send 'hello' to room: %s"%room)
+          log.info("User '%s' invite me to room: %s and I success join to room"%(user,room))
+          # Прописываем системную группу для пользователя 
+          # (группа, в которую будут сыпаться системные сообщения от бота и где он будет слушать команды):
+          with lock:
+            if "users" not in data:
+              data["users"]={}
+            if user not in data["users"]:
+              data["users"][user]={}
+            save_data(data)
+        else:
+          log.warning("not allowed invite from user: %s - ignore invite"%user)
 
 def exception_handler(e):
   global client

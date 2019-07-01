@@ -7,6 +7,15 @@ password="XXXXXX"
 # matrix device id for client - set any string like 'k4nctrsE'
 device_id = "k41at4s5" 
 
+# если списки пусты, то бот будет принимать приглашения от всех:
+# если казаны и домены и пользователи, то если совпало хоть одно - то бот примет приглашение, если ни одно из указанных не совпало - то не примет.
+# разрешить приглашать бота в комнаты только MATRIX-пользователям с указанных MATRIX-доменов (хоумсервера) - указать через запятую можно:
+# if list empty - allow invite from all users. 
+# if list not empty - allow invite if any equal
+allow_domains=["matrix.org","example.net"]
+# разрешить приглашать бота в комнаты только указанному пользователю MATRIX:
+allow_users=["@user:domain.com"]
+
 bot_command="!vs"
 
 data_file="data.json"
