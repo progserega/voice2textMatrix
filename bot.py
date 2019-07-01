@@ -93,8 +93,6 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
       # отправка файла:
       if re.search("^audio",file_type)!=None:
         # пришло голосовое сообщение - переводим его в текст:
-        # TODO
-        log.info("TODO в текст")
         result_string=None
 
         user_display_name=get_user_display_name(user)
@@ -113,6 +111,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
             log.error("send_notice(%s)"%room)
           return False
         else:
+          log.info("call api voice -> text")
           result_data=yandex.voice2text(log,file_data)
           if result_data!=None:
             result_string=result_data
@@ -123,6 +122,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
               log.error("send_notice(%s)"%room)
             return False
         # Отправка изображения из матрицы:
+        log.info("yandex API result text: %s"%result_string)
         if len(result_string)!=0:
           message="%s говорит: %s"%(user_display_name,result_string)
         else:
