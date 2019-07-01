@@ -17,7 +17,7 @@ debug=True
 
 # yandex speach cloud API settings:
 # поссылке https://cloud.yandex.ru/docs/iam/operations/iam-token/create нажать "Получите OAuth-токен в сервисе Яндекс.OAuth. Для этого перейдите по ссылке"
-oauth="XXXXXXk"
+oauth="XXXXXX"
 # https://console.cloud.yandex.ru/cloud ID у default (возможно для этого придётся создать платный ресурс на https://console.cloud.yandex.ru/):
 folder_id = "XXXXXX" # Идентификатор каталога
 
