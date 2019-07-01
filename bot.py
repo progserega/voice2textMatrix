@@ -121,8 +121,8 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
             if send_notice(room,result_string)==False:
               log.error("send_notice(%s)"%room)
             return False
-        # Отправка изображения из матрицы:
-        log.info("yandex API result text: %s"%result_string)
+        # FIXME remove logging:
+        log.debug("yandex API result text for user %s: %s"%(user,result_string))
         if len(result_string)!=0:
           message="%s говорит: %s"%(user_display_name,result_string)
         else:
