@@ -122,7 +122,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
               log.error("send_notice(%s)"%room)
             return False
         # FIXME remove logging:
-        log.debug("yandex API result text for user %s: %s"%(user,result_string))
+        log.debug("yandex API result text for voice user '%s' message: %s"%(user,result_string))
         if len(result_string)!=0:
           message="%s говорит: %s"%(user_display_name,result_string)
         else:
