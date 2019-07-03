@@ -497,6 +497,8 @@ def on_invite(room, event):
         if allow == True:
           # Приглашение вступить в комнату:
           log.debug("try join to room: %s"%room)
+          log.info("wait 3 second before join for bug https://github.com/matrix-org/synapse/issues/2367...")
+          time.sleep(3)
           room_class = client.join_room(room)
           log.debug("success join to room: %s"%room)
           room_class.send_text("Спасибо за приглашение! Недеюсь быть Вам полезным. :-)")
