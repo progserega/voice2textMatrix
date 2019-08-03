@@ -18,6 +18,8 @@ allow_users=["@user:domain.com"]
 
 bot_command="!vs"
 
+var_path="."
+
 data_file="data.json"
 
 log_path="voice2text.log"
