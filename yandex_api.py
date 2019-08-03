@@ -162,27 +162,51 @@ def getIAMtokenByJwt(log,jwt_token):
 
 def voice2textLongAudioResult(log,job_id):
   global IAM_TOKEN
-  url="https://operation.api.cloud.yandex.net/operations/%s"%job_id
-  url_data = urllib.request.Request(url)
-  url_data.add_header("Authorization", "Bearer %s" % IAM_TOKEN)
-  responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')
-  data = json.loads(responseData)
+  for i in range(1,3):
+    try:
 
-  #print(json.dumps(data, indent=4, sort_keys=True,ensure_ascii=False))
+      url="https://operation.api.cloud.yandex.net/operations/%s"%job_id
+      url_data = urllib.request.Request(url)
+      url_data.add_header("Authorization", "Bearer %s" % IAM_TOKEN)
+      responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')
+      data = json.loads(responseData)
 
-  result_text=""
-  if "done" in data:
-    if data["done"]==True:
-      for chank in data["response"]["chunks"]:
-        result_text=result_text + " " + chank["alternatives"][0]["text"]
-      return {"done":True, "result":result_text.strip()}
-    else:
-      log.info("need wait for result")
-      return {"done":False, "result":None}
-  
-  log.error("get result")
+      #print(json.dumps(data, indent=4, sort_keys=True,ensure_ascii=False))
+
+      result_text=""
+      if "done" in data:
+        if data["done"]==True:
+          for chank in data["response"]["chunks"]:
+            result_text=result_text + " " + chank["alternatives"][0]["text"]
+          return {"done":True, "result":result_text.strip()}
+        else:
+          log.info("need wait for result")
+          return {"done":False, "result":None}
+
+    except urllib.error.HTTPError as e:
+      if e.code == 401 and 'Unauthorized' in str(e):
+        log.warning(str(e))
+        log.info("try update IAM token")
+        # только через сервисный аккаунт:
+        jwt_token=get_jwt_token(conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
+        if jwt_token==None:
+          log.error("get jwt_token")
+          return None
+        log.debug("jwt token=%s"%jwt_token)
+        IAM_TOKEN=getIAMtokenByJwt(log,jwt_token)
+        if IAM_TOKEN==None:
+          log.error("get IAM token from yandex by jwt")
+          return None
+        # токен получен - пробуем ещё раз:
+        log.debug("success get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
+        log.info("after get IAM token - try call api again")
+        continue
+    except Exception as e:
+      log.error("unknown api yandex error: %s"%str(e))
+      return None
+
+  log.error("try 3 call yandex-api - no success - skip trying")
   return None
-
 
 def voice2textLongAudioAddRequest(log,data):
   # doc: https://cloud.yandex.ru/docs/speechkit/stt/transcribation
@@ -190,7 +214,7 @@ def voice2textLongAudioAddRequest(log,data):
   global IAM_TOKEN
   log.debug("=start function=")
   for i in range(1,3):
-    #try:
+    try:
       if IAM_TOKEN==None:
         # только через сервисный аккаунт:
         jwt_token=get_jwt_token(conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
@@ -204,7 +228,7 @@ def voice2textLongAudioAddRequest(log,data):
           return None
         log.debug("get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
 
-      # TODO upload file to storage:
+      # upload file to storage:
       file_url=upload_file_to_cloud(log,conf.bucket_name,data)
       if file_url==None:
         log.error("upload_file_to_cloud() - exit")
@@ -212,17 +236,7 @@ def voice2textLongAudioAddRequest(log,data):
 
       log.debug("file_url=%s"%file_url)
 
-      #sys.exit(0)
-      # Expires:
-
-      #t=time.mktime(time.gmtime())+1800 # храним 30 минут
-      #expires=time.ctime(t) + " GMT"
-      #print("result: %s"%expires)
-      #url.add_header("Expires", "Expires: %s" % expires)
-
-      #sys.exit(0)
-
-      # TODO sent to translate:
+      # sent to translate:
       params = "&".join([
           "topic=general",
           "folderId=%s" % FOLDER_ID,
@@ -255,26 +269,30 @@ def voice2textLongAudioAddRequest(log,data):
         log.error("api yandex error")
         return None
 
+    except urllib.error.HTTPError as e:
+      if e.code == 401 and 'Unauthorized' in str(e):
+        log.warning(str(e))
+        log.info("try update IAM token")
+        # только через сервисный аккаунт:
+        jwt_token=get_jwt_token(conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
+        if jwt_token==None:
+          log.error("get jwt_token")
+          return None
+        log.debug("jwt token=%s"%jwt_token)
+        IAM_TOKEN=getIAMtokenByJwt(log,jwt_token)
+        if IAM_TOKEN==None:
+          log.error("get IAM token from yandex by jwt")
+          return None
+        # токен получен - пробуем ещё раз:
+        log.debug("success get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
+        log.info("after get IAM token - try call api again")
+        continue
+    except Exception as e:
+      log.error("unknown api yandex error: %s"%str(e))
+      return None
 
-    #except urllib.error.HTTPError as e:
-    #  if e.code == 401 and 'Unauthorized' in str(e):
-    #    log.warning(str(e))
-    #    log.info("try update IAM token")
-    #    IAM_TOKEN=getIAMtoken(log,conf.oauth)
-    #    if IAM_TOKEN == None:
-    #      log.error("getIAMtoken() - exit")
-    #      return None
-    #    else:
-    #      # токен получен - пробуем ещё раз:
-    #      log.info("success get IAM token")
-    #      log.info("after get IAM token - try call api again")
-    #      continue
-    #except Exception as e:
-    #  log.error("unknown api yandex error: %s"%str(e))
-    #  return None
-
-  #log.error("try 3 call yandex-api - no success - skip trying")
-  #return None
+  log.error("try 3 call yandex-api - no success - skip trying")
+  return None
 
 
 if __name__ == '__main__':

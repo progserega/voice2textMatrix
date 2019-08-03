@@ -11,7 +11,7 @@ import config as conf
 from pydub import AudioSegment
 
 
-def load_sound(log,file_name) #,audio_type):
+def load_sound(log,file_name): #,audio_type):
   # автоопределение входного файла
   try:
     #sound = AudioSegment.from_file(file_name, audio_type) # audiu_type may be: "mp4", "wma", "aac", "ogg", "flv", "mp3", "wav"
