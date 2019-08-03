@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 import urllib.request
+import random
 import json
 import sys
 import time
@@ -106,39 +107,58 @@ def get_jwt_token(service_account_id,key_id,private_key_path):
 
   return encoded_token.decode('utf-8')
 
-def upload_file_to_cloud(log,bucket_name,file_name,data):
-  session = boto3.session.Session()
-  s3 = session.client(service_name='s3', endpoint_url='https://storage.yandexcloud.net' )
+def upload_file_to_cloud(log,bucket_name,data):
+  #try:
+    session = boto3.session.Session()
+    s3 = session.client(service_name='s3', endpoint_url='https://storage.yandexcloud.net' )
 
-  ## Из строки
-  s3.put_object(Bucket=bucket_name, Key=file_name, Body=data, StorageClass='COLD')
-  ## Из файла
-  #s3.upload_file('this_script.py', 'bucket-name', 'py_script.py')
-  return "https://storage.yandexcloud.net/%s/%s"%(bucket_name,file_name)
+    exist_file_list=[]
+    file_name=None
+    for key in s3.list_objects(Bucket=bucket_name)['Contents']:
+      exist_file_list.append(key['Key'])
+    for iteration in range(0,300):
+      random_id=random.randint(0,4294967296)
+      file_name="voice2textMatrix_data%d.oga"%random_id
+      if file_name not in exist_file_list:
+        break
+      else:
+        file_name=None
+    if file_name==None:
+      log.error("create uniq file_name in yandex storage")
+      return None
+
+    ## Из строки
+    s3.put_object(Bucket=bucket_name, Key=file_name, Body=data, StorageClass='COLD')
+    ## Из файла
+    #s3.upload_file('this_script.py', 'bucket-name', 'py_script.py')
+    return "https://storage.yandexcloud.net/%s/%s"%(bucket_name,file_name)
+  #except:
+  #  log.error("error s3.put_object() - fail load file to yandex store")
+  #  return None
 
 def getIAMtokenByJwt(log,jwt_token):
   log.debug("=start function=")
-  #try:
-  url="https://iam.api.cloud.yandex.net/iam/v1/tokens"
+  try:
+    url="https://iam.api.cloud.yandex.net/iam/v1/tokens"
 
-  data="{\"jwt\":\"%s\"}"%jwt_token
-  post_data = data.encode('utf-8')
+    data="{\"jwt\":\"%s\"}"%jwt_token
+    post_data = data.encode('utf-8')
 
-  print("post_data=",post_data)
+    #print("post_data=",post_data)
 
-  url_data = urllib.request.Request(url, data=post_data)
-  url_data.add_header("Content-Type", "application/json")
-  responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')
-  decodedData = json.loads(responseData)
-  if decodedData.get("error_code") is None:
-      log.info("token expiresAt: %s"%decodedData.get("expiresAt"))
-      return(decodedData.get("iamToken"))
-  else:
-    log.error("get IAM-token from yandex by jwt")
+    url_data = urllib.request.Request(url, data=post_data)
+    url_data.add_header("Content-Type", "application/json")
+    responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')
+    decodedData = json.loads(responseData)
+    if decodedData.get("error_code") is None:
+        log.info("token expiresAt: %s"%decodedData.get("expiresAt"))
+        return(decodedData.get("iamToken"))
+    else:
+      log.error("get IAM-token from yandex by jwt")
+      return None
+  except:
+    log.error("api yandex error - fail get IAM token by Jwt")
     return None
-  #except:
-  #  log.error("api yandex error")
-  #  return None
 
 def voice2textLongAudioResult(log,job_id):
   global IAM_TOKEN
@@ -164,7 +184,7 @@ def voice2textLongAudioResult(log,job_id):
   return None
 
 
-def voice2textLongAudio(log,data):
+def voice2textLongAudioAddRequest(log,data):
   # doc: https://cloud.yandex.ru/docs/speechkit/stt/transcribation
   global FOLDER_ID
   global IAM_TOKEN
@@ -185,8 +205,10 @@ def voice2textLongAudio(log,data):
         log.debug("get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
 
       # TODO upload file to storage:
-      file_name="test.oga"
-      file_url=upload_file_to_cloud(log,conf.bucket_name,file_name,data)
+      file_url=upload_file_to_cloud(log,conf.bucket_name,data)
+      if file_url==None:
+        log.error("upload_file_to_cloud() - exit")
+        return None
 
       log.debug("file_url=%s"%file_url)
 
@@ -218,7 +240,7 @@ def voice2textLongAudio(log,data):
       options_as_string=json.dumps(options, indent=4, sort_keys=True,ensure_ascii=False)
       options_as_data=bytearray(options_as_string, 'utf8')
 
-      log.debug("IAM_TOKEN: %s"%IAM_TOKEN)
+      #log.debug("IAM_TOKEN: %s"%IAM_TOKEN)
       url = urllib.request.Request("https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize" , data=options_as_data)
       url.add_header("Authorization", "Bearer %s" % IAM_TOKEN)
 
@@ -283,8 +305,7 @@ if __name__ == '__main__':
   data=f.read()
   f.close()
 
-  #text=voice2textShortAudio(log,data)
-  job_id=voice2textLongAudio(log,data)
+  job_id=voice2textLongAudioAddRequest(log,data)
   if job_id==None:
     log.error("error call testing function")
   else:
@@ -302,7 +323,7 @@ if __name__ == '__main__':
           time.sleep(iteration*10)
           continue
         else:
-          log.info("result text = %s"%result)
+          log.info("result text = %s"%result["result"])
           break
 
   log.info("Program exit!")
