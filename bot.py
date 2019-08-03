@@ -676,7 +676,7 @@ def main():
                 log.error(result_string)
                 if send_notice(room_id,result_string)==False:
                   log.error("send_notice(%s)"%room_id)
-        log.info("len jobs list for all rooms = %d"%num_jobs)
+        log.debug("len jobs list for all rooms = %d"%num_jobs)
       time.sleep(3)
   except Exception as e:
     log.error(get_exception_traceback_descr(e))
