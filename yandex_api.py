@@ -8,6 +8,7 @@ import time
 import jwt
 import logging
 import config as conf
+import boto3
 
 # Идентификатор каталога
 FOLDER_ID = conf.folder_id
@@ -105,6 +106,15 @@ def get_jwt_token(service_account_id,key_id,private_key_path):
 
   return encoded_token.decode('utf-8')
 
+def upload_file_to_cloud(log,bucket_name,file_name,data):
+  session = boto3.session.Session()
+  s3 = session.client(service_name='s3', endpoint_url='https://storage.yandexcloud.net' )
+
+  ## Из строки
+  s3.put_object(Bucket=bucket_name, Key=file_name, Body=data, StorageClass='COLD')
+  ## Из файла
+  #s3.upload_file('this_script.py', 'bucket-name', 'py_script.py')
+  return "https://storage.yandexcloud.net/%s/%s"%(bucket_name,file_name)
 
 def getIAMtokenByJwt(log,jwt_token):
   log.debug("=start function=")
@@ -175,12 +185,16 @@ def voice2textLongAudio(log,data):
         log.debug("get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
 
       # TODO upload file to storage:
-      base_url="https://storage.yandexcloud.net/"
-      backet="voice2text"
+      file_name="test.oga"
+      file_url=upload_file_to_cloud(log,conf.bucket_name,file_name,data)
+
+      log.debug("file_url=%s"%file_url)
+
+      #sys.exit(0)
       # Expires:
 
-      t=time.mktime(time.gmtime())+1800 # храним 30 минут
-      expires=time.ctime(t) + " GMT"
+      #t=time.mktime(time.gmtime())+1800 # храним 30 минут
+      #expires=time.ctime(t) + " GMT"
       #print("result: %s"%expires)
       #url.add_header("Expires", "Expires: %s" % expires)
 
@@ -198,7 +212,8 @@ def voice2textLongAudio(log,data):
       options["config"]["specification"]={}
       options["config"]["specification"]["languageCode"]="ru-RU"
       options["audio"]={}
-      options["audio"]["uri"]="https://storage.yandexcloud.net/voice2text/EE117081C56E0A51BBA8A9AC1E394411.mpga.opus"
+      #options["audio"]["uri"]="https://storage.yandexcloud.net/voice2text/EE117081C56E0A51BBA8A9AC1E394411.mpga.opus"
+      options["audio"]["uri"]=file_url
       #options["audio"]["uri"]="https://storage.yandexcloud.net/speechkit/speech.ogg"
       options_as_string=json.dumps(options, indent=4, sort_keys=True,ensure_ascii=False)
       options_as_data=bytearray(options_as_string, 'utf8')
@@ -264,7 +279,7 @@ if __name__ == '__main__':
 
   log.info("Program started")
 
-  f=open("test.3gpp","br")
+  f=open("A1D6A591F31ED0F704EDD00C0B59297D.oga","br")
   data=f.read()
   f.close()
 
