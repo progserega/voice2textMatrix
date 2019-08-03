@@ -23,4 +23,5 @@ May be you need create pay account for this by link: https://console.cloud.yande
 10. cp and edit: cp aws_credentials.example ~/.aws/credentials (get key from https://console.cloud.yandex.ru/cloud, enter catalog, enter service account, create access key , store key_id and key_secret to this config )
 11. cp aws_config.example ~/.aws/config
 12. create "auth key" (as 10.) and save private key as file key.pem. Set in config.py  service_secret_key_path="key.pem"
-6. run bot.py
+13. install jwt by: pip install PyJWT
+14. run bot.py
