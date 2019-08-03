@@ -1,0 +1,34 @@
+[Unit]
+Description=matrix bot for translate voice messages to text
+After=syslog.target network.target nss-lookup.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/true
+ExecStart=/opt/voice2textMatrix/bot.py
+ExecReload=/bin/true
+KillSignal=SIGTERM
+TimeoutSec=30
+#Restart=on-failure
+RestartSec=1
+#WatchdogSec=1m
+LimitNOFILE=32768
+
+User=mautrix_bridge
+
+# Hardening
+DeviceAllow=/dev/null rw
+DeviceAllow=/dev/urandom r
+ProtectHome=yes
+ProtectSystem=full
+ReadOnlyDirectories=/run
+ReadOnlyDirectories=/var
+ReadWriteDirectories=/var/log/voice2textMatrix
+ReadWriteDirectories=/var/spool/voice2textMatrix
+#CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_NET_BIND_SERVICE
+PermissionsStartOnly=yes
+
+[Install]
+WantedBy = multi-user.target
+
+
