@@ -4,9 +4,9 @@ After=syslog.target network.target nss-lookup.target
 
 [Service]
 Type=simple
-ExecStartPre=/bin/true
+#ExecStartPre=/bin/true
 ExecStart=/opt/voice2textMatrix/bot.py
-ExecReload=/bin/true
+#ExecReload=/bin/true
 KillSignal=SIGTERM
 TimeoutSec=30
 #Restart=on-failure
@@ -21,9 +21,10 @@ DeviceAllow=/dev/null rw
 DeviceAllow=/dev/urandom r
 ProtectHome=yes
 ProtectSystem=full
+ReadOnlyDirectories=/bin
 ReadOnlyDirectories=/run
-ReadOnlyDirectories=/var
-ReadWriteDirectories=/var/log/voice2textMatrix
+ReadOnlyDirectories=/opt/voice2textMatrix
+ReadWriteDirectories=/opt/voice2textMatrix/log
 ReadWriteDirectories=/var/spool/voice2textMatrix
 #CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_NET_BIND_SERVICE
 PermissionsStartOnly=yes
