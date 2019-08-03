@@ -24,11 +24,10 @@ import threading
 import random
 import requests
 import traceback
-import vk
 import ujson
 import wget
 import yandex_api as yandex
-from PIL import Image
+import audio_utils as audio
 
 from matrix_client.client import MatrixClient
 from matrix_client.api import MatrixRequestError
@@ -80,8 +79,10 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
   if room not in data["rooms"]:
     data["rooms"][room]={}
     data["rooms"][room]["settings"]={}
+    data["rooms"][room]["jobs"]=[]
     data["rooms"][room]["settings"]["enable"]=True
 
+  room_jobs=data["rooms"][room]["jobs"]
   room_settings=data["rooms"][room]["settings"]
   user_settings=data["users"][user]["settings"]
 
@@ -94,6 +95,11 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
       if re.search("^audio",file_type)!=None:
         # пришло голосовое сообщение - переводим его в текст:
         result_string=None
+
+        # cmd - file name
+        if re.search('.*\.mp3$', cmd.lower()) is not None:
+          log.info("get mp3 - not translate it - skip")
+          return True
 
         user_display_name=get_user_display_name(user)
         if user_display_name==None:
@@ -110,27 +116,96 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
           if send_notice(room,result_string)==False:
             log.error("send_notice(%s)"%room)
           return False
-        else:
-          log.info("call api voice -> text")
-          result_data=yandex.voice2text(log,file_data)
+
+        # ========= begin translate ===========
+        log.info("call api voice -> text")
+
+        # yandex short audio:
+        if conf.type_translate == "yandex_short":
+          result_data=yandex.voice2textShortAudio(log,file_data)
           if result_data!=None:
             result_string=result_data
+            # FIXME remove logging:
+            log.debug("yandex API result text for voice user '%s' message: %s"%(user,result_string))
+            if len(result_string)!=0:
+              message="%s говорит: %s"%(user_display_name,result_string)
+            else:
+              message="%s помолчал в микрофон :-("%user_display_name
+            if send_notice(room,message)==False:
+              log.error("send_notice(%s)"%room)
+              return False
           else:
             result_string="error call api voce2text()"
             log.error(result_string)
             if send_notice(room,result_string)==False:
               log.error("send_notice(%s)"%room)
             return False
-        # FIXME remove logging:
-        log.debug("yandex API result text for voice user '%s' message: %s"%(user,result_string))
-        if len(result_string)!=0:
-          message="%s говорит: %s"%(user_display_name,result_string)
-        else:
-          message="%s помолчал в микрофон :-("%user_display_name
 
-        if send_notice(room,message)==False:
-          log.error("send_notice(%s)"%room)
-          return False
+        # yandex long audio:
+        elif conf.type_translate == "yandex_long":
+          # save file to tmp-dir:
+          store_path=conf.var_path+'/voice_tmp'
+          if not os.path.exists(store_path):
+            os.makedirs(store_path)
+          orig_file_path=None
+          out_file_path=None
+          for i in range(0,100):
+            random_id=random.randint(0,4294967296)
+            orig_file_path=store_path+'/%d_'%random_id+cmd
+            out_file_path=store_path+'/%d_'%random_id+cmd+'.oga'
+            if not os.path.exists(orig_file_path) and not os.path.exists(out_file_path):
+              break;
+            else:
+              orig_file_path=None
+              out_file_path=None
+          if orig_file_path == None:
+            log.error("can not build path for save tmp files - skip")
+            result_string="can not build path for save tmp files - internal bot error"
+            if send_notice(room,result_string)==False:
+              log.error("send_notice(%s)"%room)
+            return False
+
+          in_file=open(orig_file_path,"w+")
+          in_file.write(file_data)
+          in_file.close()
+          sound=load_sound(log,orig_file_path) #,audio_type):
+          if sound == None:
+            result_string="can not save orig audio file - internal bot error"
+            log.error(result_string)
+            if send_notice(room,result_string)==False:
+              log.error("send_notice(%s)"%room)
+            return False
+          if save_as_opus(log,sound,out_file_path) == False:
+            result_string="can not save converted to opus audio file - internal bot error"
+            log.error(result_string)
+            if send_notice(room,result_string)==False:
+              log.error("send_notice(%s)"%room)
+            return False
+          opus_data=open(out_file_path,"rb").read()
+          job_id=voice2textLongAudioAddRequest(log,opus_data)
+          # remove tmp files:
+          os.remove(orig_file_path)
+          os.remove(out_file_path)
+
+          if job_id==None:
+            result_string="error call voice2textLongAudioAddRequest() function - error yandex api"
+            log.error(result_string)
+            if send_notice(room,result_string)==False:
+              log.error("send_notice(%s)"%room)
+            return False
+          # save job_id to data
+          job={}
+          job["id"]=job_id
+          job["check_num"]=0
+          job["check_time"]=int(time.time())
+          job["user_display_name"]=user_display_name
+          room_jobs.append(job)
+          save_data(data)
+          log.info("success append to room %s long yandex audio translate job with job_id=%s"%(room,job_id))
+          return True
+
+          #=======================================
+
   # Комната управления:
   # в любом состоянии отмена - всё отменяет:
   if re.search('^%s '%conf.bot_command, cmd.lower()) is not None:
@@ -228,11 +303,12 @@ def leave_room(room_id):
 def save_data(data):
   global log
   log.debug("=start function=")
-  log.debug("save to data_file:%s"%conf.data_file)
+  data_path=conf.var_path+'/data.json'
+  log.debug("save to data_file:%s"%data_path)
   try:
-    data_file=open(conf.data_file,"wb")
+    data_file=open(data_path,"wb")
   except:
-    log.error("open(%s) for writing"%conf.data_file)
+    log.error("open(%s) for writing"%data_path)
     return False
     
   try:
@@ -246,7 +322,7 @@ def save_data(data):
 def load_data():
   global log
   log.debug("=start function=")
-  tmp_data_file=conf.data_file
+  tmp_data_file=conf.var_path+'/data.json'
   reset=False
   if os.path.exists(tmp_data_file):
     log.debug("Загружаем файл промежуточных данных: '%s'" % tmp_data_file)
@@ -571,11 +647,63 @@ def main():
   x=0
   log.info("enter main loop")
   while True:
-    print("step %d"%x)
-    x+=1
-    time.sleep(30)
+    if conf.type_translate == "yandex_long":
+      with lock:
+        log.debug("success lock before main load_data()")
+        data=load_data()
+      # check yandex_long_jobs:
+      for room_id in data["rooms"]:
+        for job in data["rooms"][room_id]["jobs"]:
+          ret_value=False
+          with lock:
+            ret_value=check_long_yandex_job(log,room_id,data["rooms"][room_id]["jobs"],job)
+          if ret_value==False:
+            log.error("check_long_yandex_job(), room_id=%s, job_id=%s"%(room_id,job["id"]))
+            result_string="error get result from yandex speech api - yandex api error"
+            log.error(result_string)
+            if send_notice(room_id,result_string)==False:
+              log.error("send_notice(%s)"%room_id)
+
+    time.sleep(3)
 
   log.info("exit main loop")
+
+def check_long_yandex_job(log,room_id,jobs_list,job):
+  log.debug("=start function=")
+  now = int(time.time())
+  if job["check_time"] < now:
+    # need check:
+    result=yandex.voice2textLongAudioResult(log,job["id"])
+    if result == None:
+      log.error("error voice2textLongAudioResult()")
+      jobs_list.remove(job)
+      save_data(data)
+      return False
+    else:
+      if result["done"]==False:
+        log.debug("need wait result...")
+        job["check_num"]+=1
+        now = int(time.time())
+        job["check_time"]=now+job["check_num"]*5
+      else:
+        # FIXME remove log
+        result_string=result["result"]
+        user_display_name=job["user_display_name"]
+        log.info("result text = %s"%result_string)
+        if len(result_string)!=0:
+          message="%s говорит: %s"%(user_display_name,result_string)
+        else:
+          message="%s помолчал в микрофон :-("%user_display_name
+        if send_notice(room_id,message)==False:
+          log.error("send_notice(%s)"%room_id)
+          jobs_list.remove(job)
+          save_data(data)
+          return False
+        # success job - remove it:
+        log.info("success get result for job=%s"%job["id"])
+        jobs_list.remove(job)
+        save_data(data)
+  return True
 
 def get_name_from_url(url):
   global log
