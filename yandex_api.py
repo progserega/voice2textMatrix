@@ -124,7 +124,13 @@ def upload_file_to_cloud(log,bucket_name,data):
 
     exist_file_list=[]
     file_name=None
-    for key in s3.list_objects(Bucket=bucket_name)['Contents']:
+    objects_list=s3.list_objects(Bucket=bucket_name)
+    if 'Contents' not in objects_list:
+      log.error("can not find 'Contents' in s3 objects_list - yandex.storage error get files")
+      log.error("return data:")
+      log.error(objects_list)
+      return None
+    for key in objects_list['Contents']:
       exist_file_list.append(key['Key'])
     for iteration in range(0,300):
       random_id=random.randint(0,4294967296)
