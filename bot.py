@@ -523,7 +523,7 @@ def on_message(event):
           log.error(event)
           return False
 
-      log.debug("{0}: {1}".format(event['sender'], event['content']["body"].encode('utf8')))
+      log.debug("%s: %s"%(event['sender'], event['content']["body"]))
       log.debug("try lock before process_command()")
       with lock:
         log.debug("success lock before process_command()")
