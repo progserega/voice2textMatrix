@@ -8,6 +8,7 @@ import sys
 import time
 import jwt
 import logging
+import traceback
 import config as conf
 import boto3
 
@@ -15,6 +16,13 @@ import boto3
 FOLDER_ID = conf.folder_id
 # IAM-токен
 IAM_TOKEN = None
+
+def get_exception_traceback_descr(e):
+  tb_str = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)
+  result=""
+  for msg in tb_str:
+    result+=msg
+  return result
 
 def getIAMtoken(log,oauth):
   log.debug("=start function=")
@@ -33,7 +41,8 @@ def getIAMtoken(log,oauth):
     else:
       log.error("get IAM-token from yandex")
       return None
-  except:
+  except Exception as e:
+    log.error(get_exception_traceback_descr(e))
     log.error("api yandex error")
     return None
 
@@ -79,6 +88,7 @@ def voice2textShortAudio(log,data):
           log.info("after get IAM token - try call api again")
           continue
     except Exception as e:
+      log.error(get_exception_traceback_descr(e))
       log.error("unknown api yandex error: %s"%str(e))
       return None
 
@@ -108,7 +118,7 @@ def get_jwt_token(service_account_id,key_id,private_key_path):
   return encoded_token.decode('utf-8')
 
 def upload_file_to_cloud(log,bucket_name,data):
-  #try:
+  try:
     session = boto3.session.Session()
     s3 = session.client(service_name='s3', endpoint_url='https://storage.yandexcloud.net' )
 
@@ -132,9 +142,10 @@ def upload_file_to_cloud(log,bucket_name,data):
     ## Из файла
     #s3.upload_file('this_script.py', 'bucket-name', 'py_script.py')
     return "https://storage.yandexcloud.net/%s/%s"%(bucket_name,file_name)
-  #except:
-  #  log.error("error s3.put_object() - fail load file to yandex store")
-  #  return None
+  except Exception as e:
+    log.error(get_exception_traceback_descr(e))
+    log.error("error s3.put_object() - fail load file to yandex store")
+    return None
 
 def getIAMtokenByJwt(log,jwt_token):
   log.debug("=start function=")
@@ -156,7 +167,8 @@ def getIAMtokenByJwt(log,jwt_token):
     else:
       log.error("get IAM-token from yandex by jwt")
       return None
-  except:
+  except Exception as e:
+    log.error(get_exception_traceback_descr(e))
     log.error("api yandex error - fail get IAM token by Jwt")
     return None
 
@@ -202,6 +214,7 @@ def voice2textLongAudioResult(log,job_id):
         log.info("after get IAM token - try call api again")
         continue
     except Exception as e:
+      log.error(get_exception_traceback_descr(e))
       log.error("unknown api yandex error: %s"%str(e))
       return None
 
@@ -288,6 +301,7 @@ def voice2textLongAudioAddRequest(log,data):
         log.info("after get IAM token - try call api again")
         continue
     except Exception as e:
+      log.error(get_exception_traceback_descr(e))
       log.error("unknown api yandex error: %s"%str(e))
       return None
 
