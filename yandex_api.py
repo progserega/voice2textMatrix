@@ -125,23 +125,25 @@ def upload_file_to_cloud(log,bucket_name,data):
     exist_file_list=[]
     file_name=None
     ret_data=s3.list_objects(Bucket=bucket_name)
+    log.debug("s3.list_objects return data:")
+    log.debug(ret_data)
       
     if 'ResponseMetadata' not in ret_data:
       log.error("can not find 'ResponseMetadata' in s3 ret_data - yandex.storage error get files")
       log.error("return data:")
-      log.error(objects_list)
+      log.error(ret_data)
       return None
 
     if 'HTTPStatusCode' not in ret_data['ResponseMetadata']:
       log.error("can not find 'HTTPStatusCode' in s3 ret_data - yandex.storage error get files")
       log.error("return data:")
-      log.error(objects_list)
+      log.error(ret_data)
       return None
 
     if ret_data['ResponseMetadata']['HTTPStatusCode'] != 200:
       log.error(" ret_data['ResponseMetadata']['HTTPStatusCode'] != 200 in s3 ret_data - yandex.storage error get files")
       log.error("return data:")
-      log.error(objects_list)
+      log.error(ret_data)
       return None
 
     # если 'Contents' нет в ret_data - значит в хранилище нет ни одного файла - это нормально - пропускаем:
