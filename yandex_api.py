@@ -124,14 +124,31 @@ def upload_file_to_cloud(log,bucket_name,data):
 
     exist_file_list=[]
     file_name=None
-    objects_list=s3.list_objects(Bucket=bucket_name)
-    if 'Contents' not in objects_list:
-      log.error("can not find 'Contents' in s3 objects_list - yandex.storage error get files")
+    ret_data=s3.list_objects(Bucket=bucket_name)
+      
+    if 'ResponseMetadata' not in ret_data:
+      log.error("can not find 'ResponseMetadata' in s3 ret_data - yandex.storage error get files")
       log.error("return data:")
       log.error(objects_list)
       return None
-    for key in objects_list['Contents']:
-      exist_file_list.append(key['Key'])
+
+    if 'HTTPStatusCode' not in ret_data['ResponseMetadata']:
+      log.error("can not find 'HTTPStatusCode' in s3 ret_data - yandex.storage error get files")
+      log.error("return data:")
+      log.error(objects_list)
+      return None
+
+    if ret_data['ResponseMetadata']['HTTPStatusCode'] != 200:
+      log.error(" ret_data['ResponseMetadata']['HTTPStatusCode'] != 200 in s3 ret_data - yandex.storage error get files")
+      log.error("return data:")
+      log.error(objects_list)
+      return None
+
+    # если 'Contents' нет в ret_data - значит в хранилище нет ни одного файла - это нормально - пропускаем:
+    if 'Contents' in ret_data:
+      for key in ret_data['Contents']:
+        exist_file_list.append(key['Key'])
+
     for iteration in range(0,300):
       random_id=random.randint(0,4294967296)
       file_name="voice2textMatrix_data%d.oga"%random_id
