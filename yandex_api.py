@@ -227,7 +227,7 @@ def voice2textLongAudioResult(log,job_id):
         log.warning(str(e))
         log.info("try update IAM token")
         # только через сервисный аккаунт:
-        jwt_token=get_jwt_token(conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
+        jwt_token=get_jwt_token(log,conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
         if jwt_token==None:
           log.error("get jwt_token")
           return None
@@ -259,7 +259,7 @@ def voice2textLongAudioAddRequest(log,data):
       if IAM_TOKEN==None:
         # только через сервисный аккаунт:
         log.debug("try get jwt token...")
-        jwt_token=get_jwt_token(conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
+        jwt_token=get_jwt_token(log,conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
         if jwt_token==None:
           log.error("get jwt_token")
           return None
