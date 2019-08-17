@@ -97,6 +97,7 @@ def voice2textShortAudio(log,data):
 
 
 def get_jwt_token(service_account_id,key_id,private_key_path):
+  log.debug("=start function=")
 
   with open(private_key_path, 'r') as private:
     private_key = private.read() #.encode('utf-8') # Чтение закрытого ключа из файла.
@@ -118,6 +119,7 @@ def get_jwt_token(service_account_id,key_id,private_key_path):
   return encoded_token.decode('utf-8')
 
 def upload_file_to_cloud(log,bucket_name,data):
+  log.debug("=start function=")
   try:
     session = boto3.session.Session()
     s3 = session.client(service_name='s3', endpoint_url='https://storage.yandexcloud.net' )
@@ -251,10 +253,12 @@ def voice2textLongAudioAddRequest(log,data):
   global FOLDER_ID
   global IAM_TOKEN
   log.debug("=start function=")
+  i=0
   for i in range(1,3):
     try:
       if IAM_TOKEN==None:
         # только через сервисный аккаунт:
+        log.debug("try get jwt token...")
         jwt_token=get_jwt_token(conf.service_account_id, conf.service_account_key_id, conf.service_secret_key_path)
         if jwt_token==None:
           log.error("get jwt_token")
@@ -267,12 +271,13 @@ def voice2textLongAudioAddRequest(log,data):
         log.debug("get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
 
       # upload file to storage:
+      log.debug("try upload_file_to_cloud()")
       file_url=upload_file_to_cloud(log,conf.bucket_name,data)
       if file_url==None:
         log.error("upload_file_to_cloud() - exit")
         return None
 
-      log.debug("file_url=%s"%file_url)
+      log.info("success upload %d bytes of data to yandex-cloud storage as: %s"%(len(data),file_url))
 
       # sent to translate:
       params = "&".join([
@@ -293,18 +298,22 @@ def voice2textLongAudioAddRequest(log,data):
       options_as_data=bytearray(options_as_string, 'utf8')
 
       #log.debug("IAM_TOKEN: %s"%IAM_TOKEN)
+      log.debug("create request data for translate request...")
       url = urllib.request.Request("https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize" , data=options_as_data)
       url.add_header("Authorization", "Bearer %s" % IAM_TOKEN)
 
+      log.debug("success create request data for translate request")
+      log.debug("try send translate request...")
       responseData = urllib.request.urlopen(url).read().decode('UTF-8')
       decodedData = json.loads(responseData)
-
-      print("decodedData: ",decodedData)
+      log.debug("response is:")
+      log.debug(decodedData)
 
       if decodedData.get("error_code") is None:
           return(decodedData.get("id"))
       else:
-        log.error("api yandex error")
+        log.error("api yandex error. Error send request to translate. Request return error response:")
+        log.error(decodedData)
         return None
 
     except urllib.error.HTTPError as e:
@@ -330,7 +339,7 @@ def voice2textLongAudioAddRequest(log,data):
       log.error("unknown api yandex error: %s"%str(e))
       return None
 
-  log.error("try 3 call yandex-api - no success - skip trying")
+  log.error("try 3 call yandex-api - no success - skip trying (i=%d)"%i)
   return None
 
 
