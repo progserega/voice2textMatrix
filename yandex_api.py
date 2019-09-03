@@ -201,16 +201,29 @@ def getIAMtokenByJwt(log,jwt_token):
 
 def voice2textLongAudioResult(log,job_id):
   global IAM_TOKEN
-  for i in range(1,3):
+  log.debug("=start function=")
+  i=0
+  for i in range(1,5):
     try:
+      log.info("start get result translate step trying = %d"%i)
 
       url="https://operation.api.cloud.yandex.net/operations/%s"%job_id
+      log.debug("try create request result...")
       url_data = urllib.request.Request(url)
       url_data.add_header("Authorization", "Bearer %s" % IAM_TOKEN)
+      log.debug("success create request result")
+      log.debug("try request result...")
       responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')
-      data = json.loads(responseData)
+      log.debug("done request result")
 
+      if responseData == None:
+        log.error("request return None - exit")
+        return None
+
+      log.debug("try load json...")
+      data = json.loads(responseData)
       #print(json.dumps(data, indent=4, sort_keys=True,ensure_ascii=False))
+      log.debug("success load json")
 
       result_text=""
       if "done" in data:
@@ -221,6 +234,11 @@ def voice2textLongAudioResult(log,job_id):
         else:
           log.info("need wait for result")
           return {"done":False, "result":None}
+      else:
+        log.warning("no 'done' in result - try again....")
+
+    log.debug("some error - try again....")
+    time.sleep(3)
 
     except urllib.error.HTTPError as e:
       if e.code == 401 and 'Unauthorized' in str(e):
@@ -245,7 +263,7 @@ def voice2textLongAudioResult(log,job_id):
       log.error("unknown api yandex error: %s"%str(e))
       return None
 
-  log.error("try 3 call yandex-api - no success - skip trying")
+  log.error("try 3 call yandex-api - no success - skip trying (i=%d)"%i)
   return None
 
 def voice2textLongAudioAddRequest(log,data):
