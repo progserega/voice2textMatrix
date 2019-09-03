@@ -253,8 +253,31 @@ def voice2textLongAudioAddRequest(log,data):
   global FOLDER_ID
   global IAM_TOKEN
   log.debug("=start function=")
+  file_url=None
+
   i=0
   for i in range(1,3):
+    try:
+      # upload file to storage:
+      log.debug("try upload_file_to_cloud()")
+      file_url=upload_file_to_cloud(log,conf.bucket_name,data)
+      if file_url==None:
+        log.error("upload_file_to_cloud() - try again...")
+        continue
+    except Exception as e:
+      log.error(get_exception_traceback_descr(e))
+      log.error("unknown api yandex error: %s"%str(e))
+      log.error("try again...")
+      continue
+    if file_url!=None:
+      log.info("success upload %d bytes of data to yandex-cloud storage as: %s"%(len(data),file_url))
+    else:
+      log.error("error upload, all 3 try was fail - exit")
+      return None
+
+  i=0
+  for i in range(1,5):
+    log.info("start step trying = %d"%i)
     try:
       if IAM_TOKEN==None:
         # только через сервисный аккаунт:
@@ -269,15 +292,6 @@ def voice2textLongAudioAddRequest(log,data):
           log.error("get IAM token from yandex by jwt")
           return None
         log.debug("get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
-
-      # upload file to storage:
-      log.debug("try upload_file_to_cloud()")
-      file_url=upload_file_to_cloud(log,conf.bucket_name,data)
-      if file_url==None:
-        log.error("upload_file_to_cloud() - exit")
-        return None
-
-      log.info("success upload %d bytes of data to yandex-cloud storage as: %s"%(len(data),file_url))
 
       # sent to translate:
       params = "&".join([
@@ -305,6 +319,10 @@ def voice2textLongAudioAddRequest(log,data):
       log.debug("success create request data for translate request")
       log.debug("try send translate request...")
       responseData = urllib.request.urlopen(url).read().decode('UTF-8')
+      if responseData == None:
+        log.error("responseData == None - try again")
+        continue
+      log.debug("request end, try decode json...")
       decodedData = json.loads(responseData)
       log.debug("response is:")
       log.debug(decodedData)
