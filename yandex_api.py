@@ -255,8 +255,7 @@ def voice2textLongAudioAddRequest(log,data):
   log.debug("=start function=")
   file_url=None
 
-  i=0
-  for i in range(1,3):
+  for i in range(1,5):
     log.info("start upload step trying = %d"%i)
     try:
       # upload file to storage:
@@ -277,8 +276,7 @@ def voice2textLongAudioAddRequest(log,data):
       log.error("error upload, all 3 try was fail - exit")
       return None
 
-  i=0
-  for i in range(1,5):
+  for i in range(1,6):
     log.info("start request step trying = %d"%i)
     try:
       if IAM_TOKEN==None:
