@@ -237,8 +237,8 @@ def voice2textLongAudioResult(log,job_id):
       else:
         log.warning("no 'done' in result - try again....")
 
-    log.debug("some error - try again....")
-    time.sleep(3)
+      log.debug("some error - try again....")
+      time.sleep(3)
 
     except urllib.error.HTTPError as e:
       if e.code == 401 and 'Unauthorized' in str(e):
