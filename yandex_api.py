@@ -257,6 +257,7 @@ def voice2textLongAudioAddRequest(log,data):
 
   i=0
   for i in range(1,3):
+    log.info("start upload step trying = %d"%i)
     try:
       # upload file to storage:
       log.debug("try upload_file_to_cloud()")
@@ -271,13 +272,14 @@ def voice2textLongAudioAddRequest(log,data):
       continue
     if file_url!=None:
       log.info("success upload %d bytes of data to yandex-cloud storage as: %s"%(len(data),file_url))
+      break
     else:
       log.error("error upload, all 3 try was fail - exit")
       return None
 
   i=0
   for i in range(1,5):
-    log.info("start step trying = %d"%i)
+    log.info("start request step trying = %d"%i)
     try:
       if IAM_TOKEN==None:
         # только через сервисный аккаунт:
