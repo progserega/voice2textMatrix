@@ -261,6 +261,7 @@ def voice2textLongAudioResult(log,job_id):
       else:
         log.warning(str(e))
         log.warning("try again...")
+        time.sleep(3)
         continue
 
     except Exception as e:
@@ -278,7 +279,7 @@ def voice2textLongAudioAddRequest(log,data):
   log.debug("=start function=")
   file_url=None
 
-  for i in range(1,5):
+  for i in range(1,7):
     log.info("start upload step trying = %d"%i)
     try:
       # upload file to storage:
@@ -375,6 +376,12 @@ def voice2textLongAudioAddRequest(log,data):
         log.debug("success get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
         log.info("after get IAM token - try call api again")
         continue
+      else:
+        log.warning(str(e))
+        log.warning("try again...")
+        time.sleep(3)
+        continue
+        
     except Exception as e:
       log.error(get_exception_traceback_descr(e))
       log.error("unknown api yandex error: %s"%str(e))
