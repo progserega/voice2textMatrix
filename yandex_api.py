@@ -11,6 +11,7 @@ import logging
 import traceback
 import config as conf
 import boto3
+import uuid
 
 # Идентификатор каталога
 FOLDER_ID = conf.folder_id
@@ -213,10 +214,16 @@ def voice2textLongAudioResult(log,job_id):
     try:
       log.info("start get result translate step trying = %d"%i)
 
+
       url="https://operation.api.cloud.yandex.net/operations/%s"%job_id
       log.debug("try create request result...")
       url_data = urllib.request.Request(url)
       url_data.add_header("Authorization", "Bearer %s" % IAM_TOKEN)
+      if conf.yandex_debug:
+        uuid_str=str(uuid.uuid4())
+        log.debug("X-Client-Request-ID (UUID) = %s"%uuid_str)
+        url_data.add_header("X-Client-Request-ID", uuid_str)
+        url_data.add_header("X-Data-Logging-Enabled", "true")
       log.debug("success create request result")
       log.debug("try request result...")
       responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')

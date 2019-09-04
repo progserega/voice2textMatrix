@@ -39,3 +39,5 @@ folder_id = "XXXXXX" # Идентификатор каталога
 service_account_id="XXXXXX" # https://cloud.yandex.ru/docs/iam/operations/sa/get-id
 service_account_key_id="XXXXXXXXX" # ID ресурса Key, который принадлежит сервисному аккаунту. https://cloud.yandex.ru/docs/iam/operations/sa/create-access-key ключ надо создавать как "Авторизованные ключи"
 service_secret_key_path="private.pem" # закрытый ключ
+# включение заголовков отладки: https://cloud.yandex.ru/docs/speechkit/concepts/support-headers
+yandex_debug=False
