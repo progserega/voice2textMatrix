@@ -17,6 +17,12 @@ FOLDER_ID = conf.folder_id
 # IAM-токен
 IAM_TOKEN = None
 
+last_error_descr=""
+
+def get_last_error_descr():
+  global last_error_descr
+  return last_error_descr
+
 def get_exception_traceback_descr(e):
   tb_str = traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__)
   result=""
@@ -276,6 +282,7 @@ def voice2textLongAudioAddRequest(log,data):
   # doc: https://cloud.yandex.ru/docs/speechkit/stt/transcribation
   global FOLDER_ID
   global IAM_TOKEN
+  global last_error_descr
   log.debug("=start function=")
   file_url=None
 
@@ -300,7 +307,7 @@ def voice2textLongAudioAddRequest(log,data):
       log.error("error upload, all 3 try was fail - exit")
       return None
 
-  for i in range(1,6):
+  for i in range(1,10):
     log.info("start request step trying = %d"%i)
     try:
       if IAM_TOKEN==None:
@@ -345,6 +352,7 @@ def voice2textLongAudioAddRequest(log,data):
       responseData = urllib.request.urlopen(url).read().decode('UTF-8')
       if responseData == None:
         log.error("responseData == None - try again")
+        last_error_descr="request return Null"
         continue
       log.debug("request end, try decode json...")
       decodedData = json.loads(responseData)
@@ -375,10 +383,17 @@ def voice2textLongAudioAddRequest(log,data):
         # токен получен - пробуем ещё раз:
         log.debug("success get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
         log.info("after get IAM token - try call api again")
+        last_error_descr="IAM lost, reget new key"
         continue
+      elif e.code == 504:
+        log.warning(str(e))
+        log.warning("try again...")
+        last_error_descr="server overload - he reject our request"
+        time.sleep(20)
       else:
         log.warning(str(e))
         log.warning("try again...")
+        last_error_descr="unqnown error: %s"%str(e)
         time.sleep(3)
         continue
         
@@ -388,6 +403,7 @@ def voice2textLongAudioAddRequest(log,data):
       return None
 
   log.error("try 3 call yandex-api - no success - skip trying (i=%d)"%i)
+  log.error("last error was: %s"%last_error_descr)
   return None
 
 

@@ -195,7 +195,8 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
             os.remove(out_file_path)
 
             if job_id==None:
-              result_string="error call voice2textLongAudioAddRequest() function - error yandex api"
+              last_error_descr=yandex.get_last_error_descr()
+              result_string="error call voice2textLongAudioAddRequest() function - error yandex api (%s)"%last_error_descr
               log.error(result_string)
               if send_notice(room,result_string)==False:
                 log.error("send_notice(%s)"%room)
