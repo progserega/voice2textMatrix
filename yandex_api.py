@@ -357,8 +357,8 @@ def voice2textLongAudioAddRequest(log,data):
         uuid_str=str(uuid.uuid4())
         log.debug("yandex debug is enabled - add debug headers from: https://cloud.yandex.ru/docs/speechkit/concepts/support-headers")
         log.debug("X-Client-Request-ID (UUID) = %s"%uuid_str)
-        url_data.add_header("X-Client-Request-ID", uuid_str)
-        url_data.add_header("X-Data-Logging-Enabled", "true")
+        url.add_header("X-Client-Request-ID", uuid_str)
+        url.add_header("X-Data-Logging-Enabled", "true")
 
       log.debug("success create request data for translate request")
       log.debug("try send translate request...")
