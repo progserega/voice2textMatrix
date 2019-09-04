@@ -269,7 +269,7 @@ def voice2textLongAudioResult(log,job_id):
       log.error("unknown api yandex error: %s"%str(e))
       return None
 
-  log.error("try 3 call yandex-api - no success - skip trying (i=%d)"%i)
+  log.error("all try num (%d) end, call yandex-api - no success - skip trying"%i)
   return {"done":False, "result":None}
 
 def voice2textLongAudioAddRequest(log,data):
