@@ -224,6 +224,8 @@ def voice2textLongAudioResult(log,job_id):
         log.debug("X-Client-Request-ID (UUID) = %s"%uuid_str)
         url_data.add_header("X-Client-Request-ID", uuid_str)
         url_data.add_header("X-Data-Logging-Enabled", "true")
+      else:
+        log.debug("disabled yandex debug")
       log.debug("success create request result")
       log.debug("try request result...")
       responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')
