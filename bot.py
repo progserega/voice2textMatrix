@@ -703,6 +703,19 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
         job["check_num"]+=1
         now = int(time.time())
         job["check_time"]=now+job["check_num"]*5
+
+        # лимитируем долгоиграющие задачи, чтобы не накапливались:
+        if job["check_num"] > 120:
+          log.warning("jobid=%s, can not return after 100 requests - skip"%job["id"])
+          jobs_list.remove(job)
+          save_data(data)
+          no_error=False
+          if send_notice(room_id,"попытки получения результата перевода на запрос (jobid='%s') прекращены, т.к. превышен лимит (120) попыток"%job["id"])==False:
+            log.error("send_notice(%s)"%room_id)
+            return False
+          save_data(data)
+          return False
+          
       else:
         # FIXME remove log
         result_string=result["result"]

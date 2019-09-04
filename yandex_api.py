@@ -258,13 +258,18 @@ def voice2textLongAudioResult(log,job_id):
         log.debug("success get IAM_TOKEN by jwt: %s"%IAM_TOKEN)
         log.info("after get IAM token - try call api again")
         continue
+      else:
+        log.warning(str(e))
+        log.warning("try again...")
+        continue
+
     except Exception as e:
       log.error(get_exception_traceback_descr(e))
       log.error("unknown api yandex error: %s"%str(e))
       return None
 
   log.error("try 3 call yandex-api - no success - skip trying (i=%d)"%i)
-  return None
+  return {"done":False, "result":None}
 
 def voice2textLongAudioAddRequest(log,data):
   # doc: https://cloud.yandex.ru/docs/speechkit/stt/transcribation
