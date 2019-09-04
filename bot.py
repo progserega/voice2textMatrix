@@ -80,9 +80,9 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
       return True
 
 
-    log.debug("try lock before process_command()")
+    log.debug("try lock() before access global data()")
     with lock:
-      log.debug("success lock before process_command()")
+      log.debug("success lock() before access global data")
       if user not in data["users"]:
         data["users"][user]={}
       if "settings" not in data["users"][user]:
@@ -211,9 +211,9 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
             job["check_num"]=0
             job["check_time"]=int(time.time())
             job["user_display_name"]=user_display_name
-            log.debug("try lock before process_command()")
+            log.debug("try lock() before access global data()")
             with lock:
-              log.debug("success lock before process_command()")
+              log.debug("success lock() before access global data")
               if "jobs" not in data["rooms"][room]:
                 data["rooms"][room]["jobs"]=[]
               data["rooms"][room]["jobs"].append(job)
@@ -244,9 +244,9 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
 
       # off
       if re.search('^off$', command) is not None:
-        log.debug("try lock before process_command()")
+        log.debug("try lock() before access global data()")
         with lock:
-          log.debug("success lock before process_command()")
+          log.debug("success lock() before access global data")
           room_settings["enable"]=False
           save_data(data)
         answer="""disable translate your voice to text for this room"""
@@ -254,9 +254,9 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
 
       # on
       if re.search('^on$', command) is not None:
-        log.debug("try lock before process_command()")
+        log.debug("try lock() before access global data()")
         with lock:
-          log.debug("success lock before process_command()")
+          log.debug("success lock() before access global data")
           room_settings["enable"]=True
           save_data(data)
         answer="""enable translate your voice messages to text for this room"""
@@ -264,9 +264,9 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
 
       # my on
       if re.search('^my on$', command) is not None:
-        log.debug("try lock before process_command()")
+        log.debug("try lock() before access global data()")
         with lock:
-          log.debug("success lock before process_command()")
+          log.debug("success lock() before access global data")
           user_settings["enable"]=True
           save_data(data)
         answer="""enable translate your voice to text for all your (%s) rooms"""%user
@@ -274,9 +274,9 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
 
       # my off
       if re.search('^my off$', command) is not None:
-        log.debug("try lock before process_command()")
+        log.debug("try lock() before access global data()")
         with lock:
-          log.debug("success lock before process_command()")
+          log.debug("success lock() before access global data")
           user_settings["enable"]=False
           save_data(data)
         answer="""disable translate your voice to text for all your (%s) rooms"""%user
@@ -318,9 +318,9 @@ def leave_room(room_id):
     log.error("error forgot room: '%s'"%(room_id))
 
   log.debug("Try remove room: '%s' from data"%room_id)
-  log.debug("try lock before process_command()")
+  log.debug("try lock() before access global data()")
   with lock:
-    log.debug("success lock before process_command()")
+    log.debug("success lock() before access global data")
     if "rooms" in data:
       if room_id in data["rooms"]:
         # удаляем запись об этой комнате из данных:
@@ -713,18 +713,18 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
     result=yandex.voice2textLongAudioResult(log,job["id"])
     if result == None:
       log.error("error voice2textLongAudioResult()")
-      log.debug("try lock before process_command()")
+      log.debug("try lock() before access global data()")
       with lock:
-        log.debug("success lock before process_command()")
+        log.debug("success lock() before access global data")
         jobs_list.remove(job)
         save_data(data)
       return False
     else:
       if result["done"]==False:
         log.debug("need wait result...")
-        log.debug("try lock before process_command()")
+        log.debug("try lock() before access global data()")
         with lock:
-          log.debug("success lock before process_command()")
+          log.debug("success lock() before access global data")
           job["check_num"]+=1
           now = int(time.time())
           job["check_time"]=now+job["check_num"]*5
@@ -732,9 +732,9 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
         # лимитируем долгоиграющие задачи, чтобы не накапливались:
         if job["check_num"] > 120:
           log.warning("jobid=%s, can not return after 100 requests - skip"%job["id"])
-          log.debug("try lock before process_command()")
+          log.debug("try lock() before access global data()")
           with lock:
-            log.debug("success lock before process_command()")
+            log.debug("success lock() before access global data")
             jobs_list.remove(job)
             save_data(data)
           no_error=False
@@ -754,17 +754,17 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
           message="%s помолчал в микрофон :-("%user_display_name
         if send_notice(room_id,message)==False:
           log.error("send_notice(%s)"%room_id)
-          log.debug("try lock before process_command()")
+          log.debug("try lock() before access global data()")
           with lock:
-            log.debug("success lock before process_command()")
+            log.debug("success lock() before access global data")
             jobs_list.remove(job)
             save_data(data)
           return False
         # success job - remove it:
         log.info("success get result for job=%s"%job["id"])
-        log.debug("try lock before process_command()")
+        log.debug("try lock() before access global data()")
         with lock:
-          log.debug("success lock before process_command()")
+          log.debug("success lock() before access global data")
           jobs_list.remove(job)
           save_data(data)
   return True
