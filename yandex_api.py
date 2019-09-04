@@ -224,8 +224,6 @@ def voice2textLongAudioResult(log,job_id):
         log.debug("X-Client-Request-ID (UUID) = %s"%uuid_str)
         url_data.add_header("X-Client-Request-ID", uuid_str)
         url_data.add_header("X-Data-Logging-Enabled", "true")
-      else:
-        log.debug("disabled yandex debug")
       log.debug("success create request result")
       log.debug("try request result...")
       responseData = urllib.request.urlopen(url_data).read().decode('UTF-8')
@@ -355,6 +353,12 @@ def voice2textLongAudioAddRequest(log,data):
       log.debug("create request data for translate request...")
       url = urllib.request.Request("https://transcribe.api.cloud.yandex.net/speech/stt/v2/longRunningRecognize" , data=options_as_data)
       url.add_header("Authorization", "Bearer %s" % IAM_TOKEN)
+      if conf.yandex_debug:
+        uuid_str=str(uuid.uuid4())
+        log.debug("yandex debug is enabled - add debug headers from: https://cloud.yandex.ru/docs/speechkit/concepts/support-headers")
+        log.debug("X-Client-Request-ID (UUID) = %s"%uuid_str)
+        url_data.add_header("X-Client-Request-ID", uuid_str)
+        url_data.add_header("X-Data-Logging-Enabled", "true")
 
       log.debug("success create request data for translate request")
       log.debug("try send translate request...")
