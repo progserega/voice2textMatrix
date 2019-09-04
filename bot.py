@@ -96,6 +96,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
 
       room_settings=data["rooms"][room]["settings"]
       user_settings=data["users"][user]["settings"]
+    log.debug("release lock() after access global data")
 
     log.debug("user=%s send command=%s"%(user,cmd))
 
@@ -218,6 +219,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
                 data["rooms"][room]["jobs"]=[]
               data["rooms"][room]["jobs"].append(job)
               save_data(data)
+            log.debug("release lock() after access global data")
             log.info("success append to room %s long yandex audio translate job with job_id=%s"%(room,job_id))
             return True
 
@@ -249,6 +251,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
           log.debug("success lock() before access global data")
           room_settings["enable"]=False
           save_data(data)
+        log.debug("release lock() after access global data")
         answer="""disable translate your voice to text for this room"""
         return send_notice(room,answer)
 
@@ -259,6 +262,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
           log.debug("success lock() before access global data")
           room_settings["enable"]=True
           save_data(data)
+        log.debug("release lock() after access global data")
         answer="""enable translate your voice messages to text for this room"""
         return send_notice(room,answer)
 
@@ -269,6 +273,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
           log.debug("success lock() before access global data")
           user_settings["enable"]=True
           save_data(data)
+        log.debug("release lock() after access global data")
         answer="""enable translate your voice to text for all your (%s) rooms"""%user
         return send_notice(room,answer)
 
@@ -279,6 +284,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
           log.debug("success lock() before access global data")
           user_settings["enable"]=False
           save_data(data)
+        log.debug("release lock() after access global data")
         answer="""disable translate your voice to text for all your (%s) rooms"""%user
         return send_notice(room,answer)
   except Exception as e:
@@ -332,6 +338,7 @@ def leave_room(room_id):
         log.warning("room %s not in list rooms"%room_id)
     else:
       log.warning("rooms not in data")
+  log.debug("release lock() after access global data")
 
   log.info("success leave from room '%s'"%room_id)
   return True
@@ -620,6 +627,7 @@ def on_invite(room, event):
             if user not in data["users"]:
               data["users"][user]={}
             save_data(data)
+          log.debug("release lock() after access global data")
         else:
           log.warning("not allowed invite from user: %s - ignore invite"%user)
 
@@ -644,6 +652,7 @@ def main():
   with lock:
     log.debug("success lock before main load_data()")
     data=load_data()
+  log.debug("release lock() after access global data")
 
   log.info("try init matrix-client")
   client = MatrixClient(conf.server)
@@ -687,8 +696,7 @@ def main():
             for job in data["rooms"][room_id]["jobs"]:
               ret_value=False
               num_jobs+=1
-              with lock:
-                ret_value=check_long_yandex_job(log,room_id,data["rooms"][room_id]["jobs"],job)
+              ret_value=check_long_yandex_job(log,room_id,data["rooms"][room_id]["jobs"],job)
               if ret_value==False:
                 log.error("check_long_yandex_job(), room_id=%s, job_id=%s"%(room_id,job["id"]))
                 result_string="error get result from yandex speech api - yandex api error"
@@ -718,6 +726,7 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
         log.debug("success lock() before access global data")
         jobs_list.remove(job)
         save_data(data)
+      log.debug("release lock() after access global data")
       return False
     else:
       if result["done"]==False:
@@ -728,6 +737,7 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
           job["check_num"]+=1
           now = int(time.time())
           job["check_time"]=now+job["check_num"]*5
+        log.debug("release lock() after access global data")
 
         # лимитируем долгоиграющие задачи, чтобы не накапливались:
         if job["check_num"] > 120:
@@ -737,6 +747,7 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
             log.debug("success lock() before access global data")
             jobs_list.remove(job)
             save_data(data)
+          log.debug("release lock() after access global data")
           no_error=False
           if send_notice(room_id,"попытки получения результата перевода на запрос (jobid='%s') прекращены, т.к. превышен лимит (120) попыток"%job["id"])==False:
             log.error("send_notice(%s)"%room_id)
@@ -759,6 +770,7 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
             log.debug("success lock() before access global data")
             jobs_list.remove(job)
             save_data(data)
+          log.debug("release lock() after access global data")
           return False
         # success job - remove it:
         log.info("success get result for job=%s"%job["id"])
@@ -767,6 +779,7 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
           log.debug("success lock() before access global data")
           jobs_list.remove(job)
           save_data(data)
+        log.debug("release lock() after access global data")
   return True
 
 def get_name_from_url(url):
