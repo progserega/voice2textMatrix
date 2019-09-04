@@ -79,19 +79,23 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
       log.debug("skip our message")
       return True
 
-    if user not in data["users"]:
-      data["users"][user]={}
-    if "settings" not in data["users"][user]:
-      data["users"][user]["settings"]={}
-      data["users"][user]["settings"]["enable"]=True
-    if room not in data["rooms"]:
-      data["rooms"][room]={}
-      data["rooms"][room]["settings"]={}
-      data["rooms"][room]["jobs"]=[]
-      data["rooms"][room]["settings"]["enable"]=True
 
-    room_settings=data["rooms"][room]["settings"]
-    user_settings=data["users"][user]["settings"]
+    log.debug("try lock before process_command()")
+    with lock:
+      log.debug("success lock before process_command()")
+      if user not in data["users"]:
+        data["users"][user]={}
+      if "settings" not in data["users"][user]:
+        data["users"][user]["settings"]={}
+        data["users"][user]["settings"]["enable"]=True
+      if room not in data["rooms"]:
+        data["rooms"][room]={}
+        data["rooms"][room]["settings"]={}
+        data["rooms"][room]["jobs"]=[]
+        data["rooms"][room]["settings"]["enable"]=True
+
+      room_settings=data["rooms"][room]["settings"]
+      user_settings=data["users"][user]["settings"]
 
     log.debug("user=%s send command=%s"%(user,cmd))
 
@@ -207,10 +211,13 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
             job["check_num"]=0
             job["check_time"]=int(time.time())
             job["user_display_name"]=user_display_name
-            if "jobs" not in data["rooms"][room]:
-              data["rooms"][room]["jobs"]=[]
-            data["rooms"][room]["jobs"].append(job)
-            save_data(data)
+            log.debug("try lock before process_command()")
+            with lock:
+              log.debug("success lock before process_command()")
+              if "jobs" not in data["rooms"][room]:
+                data["rooms"][room]["jobs"]=[]
+              data["rooms"][room]["jobs"].append(job)
+              save_data(data)
             log.info("success append to room %s long yandex audio translate job with job_id=%s"%(room,job_id))
             return True
 
@@ -237,29 +244,41 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
 
       # off
       if re.search('^off$', command) is not None:
-        room_settings["enable"]=False
-        save_data(data)
+        log.debug("try lock before process_command()")
+        with lock:
+          log.debug("success lock before process_command()")
+          room_settings["enable"]=False
+          save_data(data)
         answer="""disable translate your voice to text for this room"""
         return send_notice(room,answer)
 
       # on
       if re.search('^on$', command) is not None:
-        room_settings["enable"]=True
-        save_data(data)
+        log.debug("try lock before process_command()")
+        with lock:
+          log.debug("success lock before process_command()")
+          room_settings["enable"]=True
+          save_data(data)
         answer="""enable translate your voice messages to text for this room"""
         return send_notice(room,answer)
 
       # my on
       if re.search('^my on$', command) is not None:
-        user_settings["enable"]=True
-        save_data(data)
+        log.debug("try lock before process_command()")
+        with lock:
+          log.debug("success lock before process_command()")
+          user_settings["enable"]=True
+          save_data(data)
         answer="""enable translate your voice to text for all your (%s) rooms"""%user
         return send_notice(room,answer)
 
       # my off
       if re.search('^my off$', command) is not None:
-        user_settings["enable"]=False
-        save_data(data)
+        log.debug("try lock before process_command()")
+        with lock:
+          log.debug("success lock before process_command()")
+          user_settings["enable"]=False
+          save_data(data)
         answer="""disable translate your voice to text for all your (%s) rooms"""%user
         return send_notice(room,answer)
   except Exception as e:
@@ -299,17 +318,21 @@ def leave_room(room_id):
     log.error("error forgot room: '%s'"%(room_id))
 
   log.debug("Try remove room: '%s' from data"%room_id)
-  if "rooms" in data:
-    if room_id in data["rooms"]:
-      # удаляем запись об этой комнате из данных:
-      log.info("Remove room: '%s'"%room_id)
-      del data["rooms"][room_id]
-      log.info("save state data on disk")
-      save_data(data)
+  log.debug("try lock before process_command()")
+  with lock:
+    log.debug("success lock before process_command()")
+    if "rooms" in data:
+      if room_id in data["rooms"]:
+        # удаляем запись об этой комнате из данных:
+        log.info("Remove room: '%s'"%room_id)
+        del data["rooms"][room_id]
+        log.info("save state data on disk")
+        save_data(data)
+      else:
+        log.warning("room %s not in list rooms"%room_id)
     else:
-      log.warning("room %s not in list rooms"%room_id)
-  else:
-    log.warning("rooms not in data")
+      log.warning("rooms not in data")
+
   log.info("success leave from room '%s'"%room_id)
   return True
               
@@ -488,10 +511,8 @@ def on_message(event):
           if len(client.rooms[event['room_id']]._members)==1:
             # в этой комнате только мы остались:
             # close room:
-            with lock:
-              log.debug("success lock before process_command()")
-              if leave_room(event['room_id']) == False:
-                log.warning("leave_room()==False")
+            if leave_room(event['room_id']) == False:
+              log.warning("leave_room()==False")
       return True
   elif event['type'] == "m.room.message":
       if event['content']['msgtype'] == "m.text":
@@ -525,21 +546,18 @@ def on_message(event):
           return False
 
       log.debug("%s: %s"%(event['sender'], event['content']["body"]))
-      log.debug("try lock before process_command()")
-      with lock:
-        log.debug("success lock before process_command()")
-        if process_command(\
-            event['sender'],\
-            event['room_id'],\
-            event['content']["body"],\
-            formated_message=formatted_body,\
-            format_type=format_type,\
-            reply_to_id=reply_to_id,\
-            file_url=file_url,\
-            file_type=file_type\
-          ) == False:
-          log.error("error process command: '%s'"%event['content']["body"])
-          return False
+      if process_command(\
+          event['sender'],\
+          event['room_id'],\
+          event['content']["body"],\
+          formated_message=formatted_body,\
+          format_type=format_type,\
+          reply_to_id=reply_to_id,\
+          file_url=file_url,\
+          file_type=file_type\
+        ) == False:
+        log.error("error process command: '%s'"%event['content']["body"])
+        return False
 
   else:
     print(event['type'])
@@ -695,26 +713,34 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
     result=yandex.voice2textLongAudioResult(log,job["id"])
     if result == None:
       log.error("error voice2textLongAudioResult()")
-      jobs_list.remove(job)
-      save_data(data)
+      log.debug("try lock before process_command()")
+      with lock:
+        log.debug("success lock before process_command()")
+        jobs_list.remove(job)
+        save_data(data)
       return False
     else:
       if result["done"]==False:
         log.debug("need wait result...")
-        job["check_num"]+=1
-        now = int(time.time())
-        job["check_time"]=now+job["check_num"]*5
+        log.debug("try lock before process_command()")
+        with lock:
+          log.debug("success lock before process_command()")
+          job["check_num"]+=1
+          now = int(time.time())
+          job["check_time"]=now+job["check_num"]*5
 
         # лимитируем долгоиграющие задачи, чтобы не накапливались:
         if job["check_num"] > 120:
           log.warning("jobid=%s, can not return after 100 requests - skip"%job["id"])
-          jobs_list.remove(job)
-          save_data(data)
+          log.debug("try lock before process_command()")
+          with lock:
+            log.debug("success lock before process_command()")
+            jobs_list.remove(job)
+            save_data(data)
           no_error=False
           if send_notice(room_id,"попытки получения результата перевода на запрос (jobid='%s') прекращены, т.к. превышен лимит (120) попыток"%job["id"])==False:
             log.error("send_notice(%s)"%room_id)
             return False
-          save_data(data)
           return False
           
       else:
@@ -728,13 +754,19 @@ def check_long_yandex_job(log,room_id,jobs_list,job):
           message="%s помолчал в микрофон :-("%user_display_name
         if send_notice(room_id,message)==False:
           log.error("send_notice(%s)"%room_id)
-          jobs_list.remove(job)
-          save_data(data)
+          log.debug("try lock before process_command()")
+          with lock:
+            log.debug("success lock before process_command()")
+            jobs_list.remove(job)
+            save_data(data)
           return False
         # success job - remove it:
         log.info("success get result for job=%s"%job["id"])
-        jobs_list.remove(job)
-        save_data(data)
+        log.debug("try lock before process_command()")
+        with lock:
+          log.debug("success lock before process_command()")
+          jobs_list.remove(job)
+          save_data(data)
   return True
 
 def get_name_from_url(url):
