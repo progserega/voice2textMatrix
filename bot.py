@@ -104,7 +104,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
     if room_settings["enable"]==True and user_settings["enable"]==True:
       if file_type!=None and file_url!=None:
         # отправка файла:
-        if re.search("^audio",file_type)!=None:
+        if re.search("^audio",file_type)!=None or re.search("ogg$",file_type)!=None:
           # пришло голосовое сообщение - переводим его в текст:
           result_string=None
 
