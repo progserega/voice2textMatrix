@@ -23,6 +23,16 @@ var_path="."
 data_file="data.json"
 
 log_path="voice2text.log"
+# how match keep backup log files:
+log_backup_count=30
+# can be:
+# 'S' - Seconds
+# 'M' - Minutes
+# 'H' - Hours
+# 'D' - Days
+# 'W0'-'W6' - Weekday (0=Monday)
+# 'midnight' - Roll over at midnight
+log_backup_when='midnight'
 
 debug=True
 
