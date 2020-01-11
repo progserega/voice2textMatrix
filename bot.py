@@ -104,9 +104,11 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
     # если бот включён в этой комнате:
     if room_settings["enable"]==True and user_settings["enable"]==True:
       if file_type!=None and file_url!=None:
+        log.debug("file_type=%s, check this is voice..."%file_type)
         # отправка файла:
         if re.search("^audio",file_type)!=None or re.search("ogg$",file_type)!=None:
           # пришло голосовое сообщение - переводим его в текст:
+          log.debug("yes - this is audio")
           result_string=None
 
           # cmd - file name
