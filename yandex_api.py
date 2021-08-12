@@ -125,9 +125,11 @@ def get_jwt_token(log,service_account_id,key_id,private_key_path):
 
   return encoded_token.decode('utf-8')
 
-def upload_file_to_cloud(log,bucket_name,data):
+def upload_file_to_cloud(log,bucket_name,data,debug=False):
   log.debug("=start function=")
   try:
+    if debug == True:
+      boto3.set_stream_logger('botocore', level='DEBUG')
     session = boto3.session.Session()
     s3 = session.client(service_name='s3', endpoint_url='https://storage.yandexcloud.net' )
 
@@ -285,7 +287,7 @@ def voice2textLongAudioResult(log,job_id):
   log.error("all try num (%d) end, call yandex-api - no success - skip trying"%i)
   return {"done":False, "result":None}
 
-def voice2textLongAudioAddRequest(log,data):
+def voice2textLongAudioAddRequest(log,data,debug=False):
   # doc: https://cloud.yandex.ru/docs/speechkit/stt/transcribation
   global FOLDER_ID
   global IAM_TOKEN
@@ -298,7 +300,7 @@ def voice2textLongAudioAddRequest(log,data):
     try:
       # upload file to storage:
       log.debug("try upload_file_to_cloud()")
-      file_url=upload_file_to_cloud(log,conf.bucket_name,data)
+      file_url=upload_file_to_cloud(log,conf.bucket_name,data,debug)
       if file_url==None:
         log.error("upload_file_to_cloud() - try again...")
         continue
@@ -448,7 +450,7 @@ if __name__ == '__main__':
   data=f.read()
   f.close()
 
-  job_id=voice2textLongAudioAddRequest(log,data)
+  job_id=voice2textLongAudioAddRequest(log,data,conf.debug)
   if job_id==None:
     log.error("error call testing function")
   else:

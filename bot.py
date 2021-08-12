@@ -199,7 +199,7 @@ def process_command(user,room,cmd,formated_message=None,format_type=None,reply_t
                 log.error("send_notice(%s)"%room)
               return False
             opus_data=open(out_file_path,"rb").read()
-            job_id=yandex.voice2textLongAudioAddRequest(log,opus_data)
+            job_id=yandex.voice2textLongAudioAddRequest(log,opus_data,conf.debug)
             # remove tmp files:
             os.remove(orig_file_path)
             os.remove(out_file_path)
