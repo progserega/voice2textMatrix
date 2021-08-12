@@ -19,7 +19,7 @@ User=mautrix_bridge
 # Hardening
 DeviceAllow=/dev/null rw
 DeviceAllow=/dev/urandom r
-ProtectHome=yes
+ProtectHome=off
 ProtectSystem=full
 ReadOnlyDirectories=/bin
 ReadOnlyDirectories=/run
